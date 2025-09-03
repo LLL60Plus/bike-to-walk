@@ -1,0 +1,341 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Bike → Walk Converter</title>
+<style>
+  :root { --gap: 14px; }
+  * { box-sizing: border-box; }
+  body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; margin: 0; background: #f6f7fb; color: #121417; }
+  header { padding: 24px; background: white; box-shadow: 0 2px 8px rgba(0,0,0,.06); position: sticky; top: 0; z-index: 10; }
+  h1 { margin: 0 0 6px; font-size: 22px; }
+  p.sub { margin: 0; color: #5a5f6a; font-size: 14px; }
+  main { padding: 24px; max-width: 900px; margin: 0 auto; }
+  .card { background: white; border-radius: 12px; padding: 18px; box-shadow: 0 2px 14px rgba(18,20,23,.06); margin-bottom: 18px; }
+  .grid { display: grid; gap: var(--gap); grid-template-columns: repeat(12, 1fr); }
+  .col-6 { grid-column: span 6; }
+  .col-4 { grid-column: span 4; }
+  .col-8 { grid-column: span 8; }
+  .col-12 { grid-column: span 12; }
+  @media (max-width: 720px) { .col-6, .col-4, .col-8 { grid-column: span 12; } }
+  label { display: block; font-size: 13px; color: #303540; margin-bottom: 6px; }
+  input, select { width: 100%; padding: 12px 12px; border: 1px solid #d8dbe2; border-radius: 10px; background: #fcfcff; font-size: 15px; }
+  input:focus, select:focus { outline: none; border-color: #8aa5ff; box-shadow: 0 0 0 3px rgba(138,165,255,.25); }
+  .row { display: flex; gap: var(--gap); align-items: center; flex-wrap: wrap; }
+  .btn { appearance: none; border: 0; border-radius: 10px; padding: 12px 14px; background: #2f6bff; color: white; font-weight: 600; cursor: pointer; }
+  .btn.secondary { background: #eef1f8; color: #1b1f29; }
+  .btn:disabled { opacity: .5; cursor: not-allowed; }
+  .result { font-size: 18px; font-weight: 700; }
+  .muted { color: #656f7a; font-size: 13px; }
+  .method { display: grid; grid-template-columns: 1fr; gap: 8px; }
+  .small { font-size: 12px; color: #59606c; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { padding: 10px; border-bottom: 1px solid #eef0f5; text-align: right; }
+  th:first-child, td:first-child { text-align: left; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; background: #eef5ff; color: #2f6bff; font-size: 12px; margin-left: 8px; }
+  .note { background: #fff7e6; border: 1px solid #ffe2a3; border-radius: 10px; padding: 12px; color: #7a5b1a; }
+</style>
+</head>
+<body>
+  <header>
+    <h1>Bike → Walk Converter <span class="badge">v1.0</span></h1>
+    <p class="sub">Turn your biking miles into walking miles and step equivalents for fair daily contests.</p>
+  </header>
+
+  <main>
+    <section class="card">
+      <div class="grid">
+        <div class="col-6">
+          <label for="bikeMiles">Biking miles</label>
+          <input type="number" id="bikeMiles" min="0" step="0.1" value="12" />
+        </div>
+        <div class="col-6">
+          <label for="method">Conversion method</label>
+          <select id="method">
+            <option value="calories">Calories (fair effort) — default</option>
+            <option value="time">Time-based (speed ratio)</option>
+            <option value="steps">Step-equivalent (tracker style)</option>
+            <option value="custom">Custom factor</option>
+          </select>
+        </div>
+
+        <!-- Parameters -->
+        <div class="col-12 method" id="params">
+          <!-- calories -->
+          <div data-for="calories">
+            <div class="grid">
+              <div class="col-4">
+                <label for="calFactor">Walking miles per biking mile</label>
+                <input type="number" id="calFactor" step="0.01" value="0.333" />
+                <div class="small muted">Rule of thumb from calorie burn: ~⅓ mile walk per mile bike.</div>
+              </div>
+              <div class="col-4">
+                <label for="stepsPerMile">Steps per walking mile</label>
+                <input type="number" id="stepsPerMile" step="1" value="2000" />
+                <div class="small muted">Typical range 1900–2200 steps/mile.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- time -->
+          <div data-for="time" style="display:none">
+            <div class="grid">
+              <div class="col-4">
+                <label for="walkSpeed">Walking speed (mph)</label>
+                <input type="number" id="walkSpeed" step="0.1" value="3.0" />
+              </div>
+              <div class="col-4">
+                <label for="bikeSpeed">Cycling speed (mph)</label>
+                <input type="number" id="bikeSpeed" step="0.1" value="12.0" />
+              </div>
+              <div class="col-4">
+                <label for="stepsPerMileT">Steps per walking mile</label>
+                <input type="number" id="stepsPerMileT" step="1" value="2000" />
+              </div>
+            </div>
+          </div>
+
+          <!-- steps -->
+          <div data-for="steps" style="display:none">
+            <div class="grid">
+              <div class="col-4">
+                <label for="stepFactor">Walking miles per biking mile</label>
+                <input type="number" id="stepFactor" step="0.01" value="0.15" />
+                <div class="small muted">Tracker-style equivalence: ~0.15 walk miles per bike mile.</div>
+              </div>
+              <div class="col-4">
+                <label for="stepsPerMileS">Steps per walking mile</label>
+                <input type="number" id="stepsPerMileS" step="1" value="2000" />
+              </div>
+            </div>
+          </div>
+
+          <!-- custom -->
+          <div data-for="custom" style="display:none">
+            <div class="grid">
+              <div class="col-4">
+                <label for="customFactor">Walking miles per biking mile</label>
+                <input type="number" id="customFactor" step="0.01" value="0.333" />
+              </div>
+              <div class="col-4">
+                <label for="stepsPerMileC">Steps per walking mile</label>
+                <input type="number" id="stepsPerMileC" step="1" value="2000" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-12 row">
+          <button class="btn" id="convertBtn">Convert</button>
+          <button class="btn secondary" id="resetBtn">Reset</button>
+          <span class="muted">Tip: You can tweak any parameter to match your group’s rules.</span>
+        </div>
+      </div>
+
+      <hr style="border:none;border-top:1px solid #eef0f5;margin:16px 0" />
+
+      <div class="grid">
+        <div class="col-12">
+          <div class="result" id="resultMiles">Walking miles: —</div>
+          <div class="result" id="resultSteps">Steps: —</div>
+          <div class="muted" id="explain"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h3 style="margin-top:0">Quick Chart</h3>
+      <p class="muted">Auto-fills using your selected method.</p>
+      <div class="row" style="margin-bottom:10px">
+        <button class="btn secondary" data-preset="5">5</button>
+        <button class="btn secondary" data-preset="8">8</button>
+        <button class="btn secondary" data-preset="10">10</button>
+        <button class="btn secondary" data-preset="12">12</button>
+        <button class="btn secondary" data-preset="15">15</button>
+        <button class="btn secondary" data-preset="20">20</button>
+        <button class="btn secondary" data-preset="25">25</button>
+        <button class="btn secondary" data-preset="30">30</button>
+        <button class="btn secondary" data-preset="40">40</button>
+      </div>
+      <div class="card" style="padding:0">
+        <table id="table">
+          <thead>
+            <tr>
+              <th>Biking miles</th>
+              <th>Walking miles</th>
+              <th>Steps</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <button class="btn" id="addRowBtn">Add current</button>
+        <button class="btn secondary" id="clearTableBtn">Clear</button>
+        <button class="btn secondary" id="copyBtn">Copy table</button>
+      </div>
+    </section>
+
+    <section class="card note">
+      <strong>Notes:</strong>
+      <ul style="margin:6px 0 0 18px; padding:0;">
+        <li>Calories method assumes ~80–90 cal per walking mile and ~30–35 cal per biking mile at a moderate pace. Factor defaults to 0.333 but you can adjust.</li>
+        <li>Time method compares distance covered in equal time (default speeds: walk 3 mph, bike 12 mph ⇒ factor 0.25).</li>
+        <li>Step method uses a conservative tracker-style factor (0.15). Steps assumed at 2,000 per mile by default.</li>
+      </ul>
+    </section>
+  </main>
+
+<script>
+(function(){
+  const $ = (sel) => document.querySelector(sel);
+  const $$ = (sel) => document.querySelectorAll(sel);
+
+  const bikeMiles = $("#bikeMiles");
+  const method = $("#method");
+  const convertBtn = $("#convertBtn");
+  const resetBtn = $("#resetBtn");
+  const resultMiles = $("#resultMiles");
+  const resultSteps = $("#resultSteps");
+  const explain = $("#explain");
+
+  // Params
+  const calFactor = $("#calFactor");
+  const stepsPerMile = $("#stepsPerMile");
+
+  const walkSpeed = $("#walkSpeed");
+  const bikeSpeed = $("#bikeSpeed");
+  const stepsPerMileT = $("#stepsPerMileT");
+
+  const stepFactor = $("#stepFactor");
+  const stepsPerMileS = $("#stepsPerMileS");
+
+  const customFactor = $("#customFactor");
+  const stepsPerMileC = $("#stepsPerMileC");
+
+  // Table
+  const tableBody = $("#table tbody");
+  const addRowBtn = $("#addRowBtn");
+  const clearTableBtn = $("#clearTableBtn");
+  const copyBtn = $("#copyBtn");
+
+  function showParams() {
+    const value = method.value;
+    $$("#params > div").forEach(div => {
+      div.style.display = (div.getAttribute("data-for") === value) ? "" : "none";
+    });
+  }
+
+  function round(n) {
+    return Math.round(n * 100) / 100;
+  }
+
+  function compute(bike) {
+    let walkMiles, steps, how="";
+
+    switch(method.value) {
+      case "calories":
+        walkMiles = bike * parseFloat(calFactor.value || 0.333);
+        steps = walkMiles * parseFloat(stepsPerMile.value || 2000);
+        how = `Calories method using factor ${parseFloat(calFactor.value || 0.333)} walk mi per bike mi and ${parseInt(stepsPerMile.value || 2000)} steps/mi.`;
+        break;
+      case "time":
+        const w = parseFloat(walkSpeed.value || 3.0);
+        const b = parseFloat(bikeSpeed.value || 12.0);
+        const factorT = w / b;
+        walkMiles = bike * factorT;
+        steps = walkMiles * parseFloat(stepsPerMileT.value || 2000);
+        how = `Time method using ${w} mph walk vs ${b} mph bike (factor ${round(factorT)}), ${parseInt(stepsPerMileT.value || 2000)} steps/mi.`;
+        break;
+      case "steps":
+        walkMiles = bike * parseFloat(stepFactor.value || 0.15);
+        steps = walkMiles * parseFloat(stepsPerMileS.value || 2000);
+        how = `Step method using factor ${parseFloat(stepFactor.value || 0.15)} and ${parseInt(stepsPerMileS.value || 2000)} steps/mi.`;
+        break;
+      case "custom":
+        walkMiles = bike * parseFloat(customFactor.value || 0.333);
+        steps = walkMiles * parseFloat(stepsPerMileC.value || 2000);
+        how = `Custom factor ${parseFloat(customFactor.value || 0.333)} and ${parseInt(stepsPerMileC.value || 2000)} steps/mi.`;
+        break;
+    }
+
+    return { walkMiles: round(walkMiles), steps: Math.round(steps), how };
+  }
+
+  function render() {
+    const miles = parseFloat(bikeMiles.value || 0);
+    const out = compute(miles);
+    resultMiles.textContent = `Walking miles: ${out.walkMiles.toLocaleString()}`;
+    resultSteps.textContent = `Steps: ${out.steps.toLocaleString()}`;
+    explain.textContent = out.how;
+  }
+
+  function addCurrentRow() {
+    const miles = parseFloat(bikeMiles.value || 0);
+    const out = compute(miles);
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${miles}</td><td>${out.walkMiles}</td><td>${out.steps.toLocaleString()}</td>`;
+    tableBody.appendChild(tr);
+  }
+
+  function clearTable() {
+    tableBody.innerHTML = "";
+  }
+
+  function copyTable() {
+    const rows = [["Biking miles","Walking miles","Steps"]];
+    tableBody.querySelectorAll("tr").forEach(tr => {
+      const tds = tr.querySelectorAll("td");
+      rows.push([tds[0].textContent, tds[1].textContent, tds[2].textContent.replace(/,/g, "")]);
+    });
+    const text = rows.map(r => r.join("\t")).join("\n");
+    navigator.clipboard.writeText(text).then(() => {
+      alert("Table copied. Paste into Notes, Excel, Google Sheets, or an email.");
+    });
+  }
+
+  // Presets fill table with a single calculation for that biking distance
+  document.querySelectorAll("[data-preset]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      bikeMiles.value = btn.getAttribute("data-preset");
+      render();
+      addCurrentRow();
+    });
+  });
+
+  method.addEventListener("change", () => { showParams(); render(); });
+  [bikeMiles, calFactor, stepsPerMile, walkSpeed, bikeSpeed, stepsPerMileT, stepFactor, stepsPerMileS, customFactor, stepsPerMileC].forEach(el => {
+    el.addEventListener("input", render);
+  });
+
+  convertBtn.addEventListener("click", render);
+  resetBtn.addEventListener("click", () => {
+    bikeMiles.value = 12;
+    method.value = "calories";
+    calFactor.value = 0.333;
+    stepsPerMile.value = 2000;
+    walkSpeed.value = 3.0;
+    bikeSpeed.value = 12.0;
+    stepsPerMileT.value = 2000;
+    stepFactor.value = 0.15;
+    stepsPerMileS.value = 2000;
+    customFactor.value = 0.333;
+    stepsPerMileC.value = 2000;
+    showParams();
+    clearTable();
+    render();
+  });
+
+  addRowBtn.addEventListener("click", addCurrentRow);
+  clearTableBtn.addEventListener("click", clearTable);
+  copyBtn.addEventListener("click", copyTable);
+
+  // initial render
+  showParams();
+  render();
+})();
+</script>
+</body>
+</html>
